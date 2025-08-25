@@ -1,0 +1,59 @@
+site_name: Datadog HTTP Handler
+site_description: High-performance async HTTP logging handler for Datadog with batching and retry logic
+site_url: https://enlyft.github.io/datadog-http-handler
+repo_url: https://github.com/enlyft/datadog-http-handler
+repo_name: enlyft/datadog-http-handler
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage Examples: examples.md
+  - API Reference: api.md
+  - Configuration: configuration.md
+  - Troubleshooting: troubleshooting.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
