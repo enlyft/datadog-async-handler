@@ -1,8 +1,8 @@
 site_name: Datadog Async Handler
 site_description: High-performance async HTTP logging handler for Datadog with batching and retry logic
-site_url: https://enlyft.github.io/datadog-http-handler
-repo_url: https://github.com/enlyft/datadog-http-handler
-repo_name: enlyft/datadog-http-handler
+site_url: https://enlyft.github.io/datadog-async-handler
+repo_url: https://github.com/enlyft/datadog-async-handler
+repo_name: enlyft/datadog-async-handler
 
 theme:
   name: material

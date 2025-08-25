@@ -71,11 +71,11 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/enlyft/datadog-http-handler"
-Documentation = "https://enlyft.github.io/datadog-http-handler"
-Repository = "https://github.com/enlyft/datadog-http-handler.git"
-Changelog = "https://github.com/enlyft/datadog-http-handler/blob/main/CHANGELOG.md"
-"Bug Tracker" = "https://github.com/enlyft/datadog-http-handler/issues"
+Homepage = "https://github.com/enlyft/datadog-async-handler"
+Documentation = "https://enlyft.github.io/datadog-async-handler"
+Repository = "https://github.com/enlyft/datadog-async-handler.git"
+Changelog = "https://github.com/enlyft/datadog-async-handler/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/enlyft/datadog-async-handler/issues"
 
 [tool.hatch.version]
 source = "vcs"
