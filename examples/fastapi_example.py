@@ -1,4 +1,4 @@
-"""FastAPI integration example for datadog-http-handler."""
+"""FastAPI integration example for datadog-async-handler."""
 
 import logging
 import os

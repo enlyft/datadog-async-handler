@@ -3,9 +3,9 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "datadog-http-handler"
+name = "datadog-async-handler"
 dynamic = ["version"]
-description = "Async HTTP logging handler for Datadog with batching and retry logic"
+description = "High-performance async HTTP logging handler for Datadog with batching and retry logic"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"

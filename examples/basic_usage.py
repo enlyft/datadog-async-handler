@@ -1,4 +1,4 @@
-"""Basic usage example for datadog-http-handler."""
+"""Basic usage example for datadog-async-handler."""
 
 import logging
 import os

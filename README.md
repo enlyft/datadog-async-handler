@@ -1,7 +1,7 @@
-# Datadog HTTP Handler
+# Datadog Async Handler
 
-[![PyPI version](https://badge.fury.io/py/datadog-http-handler.svg)](https://badge.fury.io/py/datadog-http-handler)
-[![Python versions](https://img.shields.io/pypi/pyversions/datadog-http-handler.svg)](https://pypi.org/project/datadog-http-handler/)
+[![PyPI version](https://badge.fury.io/py/datadog-async-handler.svg)](https://badge.fury.io/py/datadog-async-handler)
+[![Python versions](https://img.shields.io/pypi/pyversions/datadog-async-handler.svg)](https://pypi.org/project/datadog-async-handler/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -23,7 +23,7 @@ A modern, high-performance Python logging handler that sends logs directly to Da
 ### Installation
 
 ```bash
-pip install datadog-http-handler
+pip install datadog-async-handler
 ```
 
 ### Basic Usage
@@ -217,22 +217,24 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Links
 
 - [Documentation](https://enlyft.github.io/datadog-http-handler)
-- [PyPI Package](https://pypi.org/project/datadog-http-handler/)
+- [PyPI Package](https://pypi.org/project/datadog-async-handler/)
 - [GitHub Repository](https://github.com/enlyft/datadog-http-handler)
 - [Issue Tracker](https://github.com/enlyft/datadog-http-handler/issues)
 - [Datadog Logs API Documentation](https://docs.datadoghq.com/api/latest/logs/)
 
 ## 🆚 Comparison with Other Solutions
 
-| Feature | datadog-http-handler | python-datadog | datadog-logger |
-|---------|---------------------|----------------|----------------|
-| Async Batching | ✅ | ❌ | ❌ |
-| Retry Logic | ✅ | ❌ | ❌ |
-| Type Hints | ✅ | ❌ | ❌ |
-| Modern Python | ✅ (3.9+) | ❌ (2.7+) | ❌ (3.6+) |
-| Official API Client | ✅ | ❌ | ❌ |
-| Background Processing | ✅ | ❌ | ❌ |
-| Memory Efficient | ✅ | ❌ | ❌ |
+| Feature | datadog-async-handler | datadog-http-handler | python-datadog | datadog-logger |
+|---------|----------------------|---------------------|----------------|----------------|
+| Async Batching | ✅ | ❌ | ❌ | ❌ |
+| Retry Logic | ✅ | ❌ | ❌ | ❌ |
+| Type Hints | ✅ | ❌ | ❌ | ❌ |
+| Modern Python | ✅ (3.9+) | ❌ (3.6+) | ❌ (2.7+) | ❌ (3.6+) |
+| Official API Client | ✅ | ❌ | ❌ | ❌ |
+| Background Processing | ✅ | ❌ | ❌ | ❌ |
+| Memory Efficient | ✅ | ❌ | ❌ | ❌ |
+| Active Maintenance | ✅ | ❌ (2019) | ✅ | ❌ |
+| Comprehensive Tests | ✅ | ❌ | ✅ | ❌ |
 
 ---
 

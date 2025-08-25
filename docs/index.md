@@ -1,6 +1,6 @@
-# Datadog HTTP Handler Documentation
+# Datadog Async Handler Documentation
 
-Welcome to the documentation for datadog-http-handler, a high-performance Python logging handler for Datadog.
+Welcome to the documentation for datadog-async-handler, a high-performance Python logging handler for Datadog.
 
 ## Quick Links
 
@@ -12,7 +12,7 @@ Welcome to the documentation for datadog-http-handler, a high-performance Python
 
 ## Overview
 
-The `datadog-http-handler` package provides a modern, high-performance logging handler that sends logs directly to Datadog's HTTP intake API. It features:
+The `datadog-async-handler` package provides a modern, high-performance logging handler that sends logs directly to Datadog's HTTP intake API. It features:
 
 - **🚀 High Performance**: Asynchronous batching and background processing
 - **🔄 Reliable Delivery**: Automatic retry with exponential backoff
@@ -47,7 +47,7 @@ logger.info("Application started successfully")
 ## Installation
 
 ```bash
-pip install datadog-http-handler
+pip install datadog-async-handler
 ```
 
 ## Framework Integration
