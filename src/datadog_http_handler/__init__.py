@@ -24,4 +24,4 @@ Example:
 from .handler import DatadogHTTPHandler
 
 __version__ = "0.1.0"
-__all__ = ["DatadogHTTPHandler"]
+__all__ = ["DatadogHTTPHandler", "DatadogJsonFormatter"]
