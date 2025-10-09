@@ -1,6 +1,6 @@
 # Datadog Async Handler
 
-[![PyPI version](https://badge.fury.io/py/datadog-async-handler.svg)](https://badge.fury.io/py/datadog-async-handler)
+[![PyPI version](https://img.shields.io/pypi/v/datadog-async-handler)](https://pypi.org/project/datadog-async-handler/)
 [![Python versions](https://img.shields.io/pypi/pyversions/datadog-async-handler.svg)](https://pypi.org/project/datadog-async-handler/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
