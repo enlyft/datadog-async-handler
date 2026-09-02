@@ -1,6 +1,7 @@
 """Unit tests for DatadogHTTPHandler."""
 
 import logging
+import threading
 import time
 from unittest.mock import MagicMock, Mock, patch
 
@@ -242,3 +243,117 @@ class TestDatadogHTTPHandlerIntegration:
 
             # Should have triggered at least one batch send
             assert mock_logs_api.submit_log.call_count >= 1
+
+
+class TestForkSafety:
+    """A process that forks while the worker thread is inside a TLS flush hands the
+    child OpenSSL state mid-update; the child then deadlocks on its own first TLS
+    handshake. fork() must be serialized against in-flight sends, and the child must
+    get a fresh worker."""
+
+    @pytest.fixture
+    def handler(self, handler_config):
+        with patch.object(DatadogHTTPHandler, "_setup_api_client"):
+            handler = DatadogHTTPHandler(**handler_config)
+        handler.logs_api = MagicMock()
+        try:
+            yield handler
+        finally:
+            handler.close()
+
+    def test_registers_at_fork_hooks(self, handler_config):
+        with (
+            patch.object(DatadogHTTPHandler, "_setup_api_client"),
+            patch("datadog_http_handler.handler.os.register_at_fork") as register,
+        ):
+            handler = DatadogHTTPHandler(**handler_config)
+            try:
+                register.assert_called_once()
+                assert set(register.call_args.kwargs) == {
+                    "before",
+                    "after_in_parent",
+                    "after_in_child",
+                }
+            finally:
+                handler.close()
+
+    def test_worker_thread_is_named(self, handler):
+        assert handler._worker_thread.name == "datadog-http-handler"
+
+    def test_before_fork_waits_for_inflight_send(self, handler):
+        started, release = threading.Event(), threading.Event()
+
+        def blocking_submit(body):
+            started.set()
+            release.wait(5)
+
+        handler.logs_api.submit_log.side_effect = blocking_submit
+        sender = threading.Thread(target=handler._send_batch, args=([MagicMock()],))
+        sender.start()
+        assert started.wait(2)
+
+        hook = threading.Thread(target=handler._before_fork)
+        hook.start()
+        hook.join(0.3)
+        assert hook.is_alive(), "fork() proceeded while a TLS flush was in flight"
+
+        release.set()
+        hook.join(2)
+        sender.join(2)
+        assert not hook.is_alive()
+        assert handler._send_lock.locked(), "parent must hold the lock across fork()"
+        handler._after_fork_in_parent()
+        assert not handler._send_lock.locked()
+
+    def test_before_fork_does_not_hold_lock_across_retry_backoff(self, handler):
+        """Only the network attempt is locked, so fork() may proceed during back-off."""
+        in_backoff = threading.Event()
+        handler.logs_api.submit_log.side_effect = Exception("boom")
+
+        def slow_backoff(_seconds: float) -> None:
+            in_backoff.set()
+            time.sleep(0.3)
+
+        with patch("datadog_http_handler.handler.time.sleep", side_effect=slow_backoff):
+            sender = threading.Thread(target=handler._send_batch, args=([MagicMock()],))
+            sender.start()
+            assert in_backoff.wait(2)
+            assert not handler._send_lock.locked()
+            sender.join(5)
+
+    def test_before_fork_is_bounded_when_send_is_wedged(self, handler):
+        never = threading.Event()
+        handler.logs_api.submit_log.side_effect = lambda body: never.wait(30)
+        sender = threading.Thread(
+            target=handler._send_batch, args=([MagicMock()],), daemon=True
+        )
+        sender.start()
+        time.sleep(0.05)
+
+        with patch.object(DatadogHTTPHandler, "_FORK_WAIT_SECONDS", 0.2):
+            t0 = time.monotonic()
+            handler._before_fork()
+            elapsed = time.monotonic() - t0
+
+        assert elapsed < 2, (
+            "a worker wedged in C must not freeze the parent's fork forever"
+        )
+        handler._after_fork_in_parent()  # never acquired: must not raise
+        never.set()
+
+    def test_after_fork_in_child_replaces_queue_lock_and_worker(self, handler):
+        old_thread, old_queue, old_lock = (
+            handler._worker_thread,
+            handler._log_queue,
+            handler._send_lock,
+        )
+        handler._send_lock.acquire()  # the lock the child inherits from the parent is held
+
+        handler._after_fork_in_child()
+
+        assert handler._send_lock is not old_lock
+        assert not handler._send_lock.locked()
+        assert handler._log_queue is not old_queue
+        assert handler._log_queue.empty()
+        assert handler._worker_thread is not old_thread
+        assert handler._worker_thread.is_alive()

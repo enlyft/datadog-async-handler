@@ -9,6 +9,7 @@ import logging
 import os
 import threading
 import time
+import weakref
 from queue import Empty, Queue
 from typing import Optional
 
@@ -18,6 +19,17 @@ from datadog_api_client.v2.model.http_log import HTTPLog
 from datadog_api_client.v2.model.http_log_item import HTTPLogItem
 
 
+def _at_fork(ref: "weakref.ReferenceType[DatadogHTTPHandler]", method: str) -> None:
+    """Dispatch an ``os.register_at_fork`` callback to a handler that is still alive.
+
+    ``os.register_at_fork`` keeps its callables for the life of the process, so the
+    hooks hold only a weak reference and become no-ops once the handler is collected.
+    """
+    handler = ref()
+    if handler is not None:
+        getattr(handler, method)()
+
+
 class DatadogHTTPHandler(logging.Handler):
     """
     High-performance logging handler that sends logs to Datadog via HTTP API.
@@ -25,6 +37,12 @@ class DatadogHTTPHandler(logging.Handler):
     This handler batches logs and sends them asynchronously to avoid blocking
     the main application thread. It includes retry logic with exponential backoff,
     comprehensive error handling, and support for all Datadog sites.
+
+    The handler is fork-safe. Its worker thread sends over TLS, and a child forked
+    while that handshake is in flight inherits OpenSSL state mid-update and deadlocks
+    on its own first TLS handshake. ``os.register_at_fork`` hooks hold a send lock
+    across ``fork()`` so no child is forked mid-send, and give the child a fresh
+    queue, lock, and worker thread (threads do not survive ``fork()``).
 
     Args:
         api_key: Datadog API key (or set DD_API_KEY env var)
@@ -59,6 +77,9 @@ class DatadogHTTPHandler(logging.Handler):
         >>> logger = logging.getLogger(__name__)
         >>> logger.addHandler(handler)
     """
+
+    # Bounded so a worker wedged inside C can never freeze the parent's fork() forever.
+    _FORK_WAIT_SECONDS = 15.0
 
     def __init__(
         self,
@@ -103,7 +124,16 @@ class DatadogHTTPHandler(logging.Handler):
         self._log_queue: Queue[HTTPLogItem] = Queue()
         self._stop_event = threading.Event()
         self._worker_thread: Optional[threading.Thread] = None
+        self._send_lock = threading.Lock()
+        self._fork_lock_held = False
         self._start_worker()
+        if hasattr(os, "register_at_fork"):  # POSIX only
+            ref = weakref.ref(self)
+            os.register_at_fork(
+                before=lambda: _at_fork(ref, "_before_fork"),
+                after_in_parent=lambda: _at_fork(ref, "_after_fork_in_parent"),
+                after_in_child=lambda: _at_fork(ref, "_after_fork_in_child"),
+            )
 
     def _setup_api_client(self) -> None:
         """Setup the Datadog API client."""
@@ -117,7 +147,9 @@ class DatadogHTTPHandler(logging.Handler):
     def _start_worker(self) -> None:
         """Start the background worker thread."""
         if self._worker_thread is None or not self._worker_thread.is_alive():
-            self._worker_thread = threading.Thread(target=self._worker, daemon=True)
+            self._worker_thread = threading.Thread(
+                target=self._worker, daemon=True, name="datadog-http-handler"
+            )
             self._worker_thread.start()
 
     def _worker(self) -> None:
@@ -161,7 +193,8 @@ class DatadogHTTPHandler(logging.Handler):
         for attempt in range(self.max_retries + 1):
             try:
                 http_log = HTTPLog(batch)
-                self.logs_api.submit_log(body=http_log)
+                with self._send_lock:  # fork() waits for this, not for back-off
+                    self.logs_api.submit_log(body=http_log)
                 return  # Success
 
             except Exception as e:
@@ -173,6 +206,33 @@ class DatadogHTTPHandler(logging.Handler):
                 else:
                     # Wait before retry (exponential backoff)
                     time.sleep(2**attempt)
+
+    def _before_fork(self) -> None:
+        """Hold the send lock across ``fork()`` so no child is forked mid-send."""
+        self._fork_lock_held = self._send_lock.acquire(timeout=self._FORK_WAIT_SECONDS)
+        if not self._fork_lock_held:
+            self._handle_error(
+                "forking while a log send is wedged; the child's TLS may deadlock"
+            )
+
+    def _after_fork_in_parent(self) -> None:
+        """Release the lock taken by ``_before_fork``."""
+        if self._fork_lock_held:
+            self._fork_lock_held = False
+            self._send_lock.release()
+
+    def _after_fork_in_child(self) -> None:
+        """Give the child a fresh lock, queue, and worker thread.
+
+        The parent's worker thread does not exist in the child, and the inherited
+        lock may still be held by it.
+        """
+        self._send_lock = threading.Lock()
+        self._fork_lock_held = False
+        self._log_queue = Queue()
+        self._stop_event = threading.Event()
+        self._worker_thread = None
+        self._start_worker()
 
     def _handle_error(self, message: str) -> None:
         """Handle errors that occur during log submission."""

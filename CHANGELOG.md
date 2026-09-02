@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-09-02
+
+### Fixed
+- Fork safety: a process that called `fork()` while the worker thread was inside a TLS
+  send handed the child OpenSSL state mid-update, and the child deadlocked on its own
+  first TLS handshake (observed with Celery prefork workers). `os.register_at_fork`
+  hooks now hold the send lock across `fork()` and give the child a fresh queue, lock,
+  and worker thread. The lock covers only the network attempt, not retry back-off.
+- The worker thread is named `datadog-http-handler`.
+
 ## [0.1.2] - 2025-08-25
 
 ### Added
